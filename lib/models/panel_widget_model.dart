@@ -35,6 +35,7 @@ class PanelWidgetModel {
   final IconData icon;
   final PanelWidgetType type;
   final String topic;
+  final String? subscribeTopic; // Widget'ın dinleyeceği topic
   final String? onMessage;
   final String? offMessage;
   final double? minValue;
@@ -48,6 +49,7 @@ class PanelWidgetModel {
     required this.icon,
     required this.type,
     required this.topic,
+    this.subscribeTopic,
     this.onMessage,
     this.offMessage,
     this.minValue,
@@ -63,6 +65,7 @@ class PanelWidgetModel {
       'iconData': icon.codePoint,
       'type': type.toString(),
       'topic': topic,
+      'subscribeTopic': subscribeTopic,
       'onMessage': onMessage,
       'offMessage': offMessage,
       'minValue': minValue,
@@ -84,6 +87,7 @@ class PanelWidgetModel {
         (e) => e.toString() == json['type'],
       ),
       topic: json['topic'],
+      subscribeTopic: json['subscribeTopic'],
       onMessage: json['onMessage'],
       offMessage: json['offMessage'],
       minValue: json['minValue']?.toDouble(),

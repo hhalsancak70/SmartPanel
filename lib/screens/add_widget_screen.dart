@@ -13,6 +13,7 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _topicController = TextEditingController();
+  final _subscribeTopicController = TextEditingController();
   final _minValueController = TextEditingController(text: '0');
   final _maxValueController = TextEditingController(text: '100');
   final _onMessageController = TextEditingController(text: 'AÇIK');
@@ -43,6 +44,7 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
   void dispose() {
     _titleController.dispose();
     _topicController.dispose();
+    _subscribeTopicController.dispose();
     _minValueController.dispose();
     _maxValueController.dispose();
     _onMessageController.dispose();
@@ -57,6 +59,9 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
       id: const Uuid().v4(),
       title: _titleController.text,
       topic: _topicController.text,
+      subscribeTopic: _subscribeTopicController.text.isEmpty 
+          ? null 
+          : _subscribeTopicController.text,
       type: _selectedType,
       icon: _selectedIcon,
       isActive: false,
@@ -135,9 +140,9 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
             TextFormField(
               controller: _topicController,
               decoration: const InputDecoration(
-                labelText: 'MQTT Topic',
+                labelText: 'Yayın Topic\'i (Publish)',
                 border: OutlineInputBorder(),
-                hintText: 'örn: home/living_room/light',
+                hintText: 'örn: home/living_room/light/set',
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -145,6 +150,16 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _subscribeTopicController,
+              decoration: const InputDecoration(
+                labelText: 'Dinleme Topic\'i (Subscribe)',
+                border: OutlineInputBorder(),
+                hintText: 'örn: home/living_room/light/state',
+                helperText: 'Boş bırakılabilir',
+              ),
             ),
             const SizedBox(height: 16),
             if (_selectedType == PanelWidgetType.button) ...[

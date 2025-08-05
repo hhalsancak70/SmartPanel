@@ -6,6 +6,7 @@ import '../services/theme_service.dart';
 import '../widgets/panel_widget_card.dart';
 import 'add_widget_screen.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,11 +21,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _mqttService = MqttService();
   SmartPanelMqttState _connectionState = SmartPanelMqttState.disconnected;
   bool _isLoading = true;
+  StreamSubscription? _messageSubscription;
+  StreamSubscription? _connectionSubscription;
 
   @override
   void initState() {
     super.initState();
     _initializeScreen();
+  }
+
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    _connectionSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _initializeScreen() async {
@@ -36,17 +46,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _items.clear();
           _items.addAll(widgets);
         });
+        _subscribeToTopics();
       }
     });
 
-    _mqttService.connectionState.listen((state) {
+    // Bağlantı durumu dinleyicisini ayrı bir değişkende tutuyoruz
+    _connectionSubscription = _mqttService.connectionState.listen((state) {
+      print('MQTT Bağlantı durumu değişti: $state'); // Debug log
       if (mounted) {
-        setState(() => _connectionState = state);
+        setState(() {
+          _connectionState = state;
+          print('Yeni bağlantı durumu: $_connectionState'); // Debug log
+        });
         if (state == SmartPanelMqttState.disconnected) {
           _showReconnectDialog();
+        } else if (state == SmartPanelMqttState.connected) {
+          _subscribeToTopics();
         }
       }
     });
+
+    _messageSubscription = _mqttService.messageStream.listen(_handleMqttMessage);
+
+    // Mevcut bağlantı durumunu kontrol et
+    if (_mqttService.isConnected) {
+      setState(() => _connectionState = SmartPanelMqttState.connected);
+    }
 
     if (mounted) {
       setState(() => _isLoading = false);
@@ -73,6 +98,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
       }
     }
+  }
+
+  void _subscribeToTopics() {
+    if (!_mqttService.isConnected) return;
+
+    for (var widget in _items) {
+      if (widget.subscribeTopic != null) {
+        _mqttService.subscribe(widget.subscribeTopic!);
+      }
+    }
+  }
+
+  void _handleMqttMessage(ReceivedMessage message) {
+    if (!mounted) return;
+
+    for (var widget in _items) {
+      if (widget.subscribeTopic == message.topic) {
+        setState(() {
+          switch (widget.type) {
+            case PanelWidgetType.button:
+            case PanelWidgetType.switch_:
+              widget.isActive = _parseOnOffMessage(message.message, widget);
+              break;
+            case PanelWidgetType.slider:
+              final value = double.tryParse(message.message);
+              if (value != null) {
+                widget.currentValue = value;
+                widget.isActive = value > (widget.minValue ?? 0);
+              }
+              break;
+          }
+        });
+        _storageService.updateWidget(widget);
+      }
+    }
+  }
+
+  bool _parseOnOffMessage(String message, PanelWidgetModel widget) {
+    final normalizedMessage = message.trim().toUpperCase();
+    if (widget.onMessage != null && widget.offMessage != null) {
+      return normalizedMessage == widget.onMessage!.toUpperCase();
+    }
+    return normalizedMessage == 'ON' || normalizedMessage == '1' || normalizedMessage == 'TRUE';
   }
 
   void _showReconnectDialog() {

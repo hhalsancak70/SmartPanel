@@ -98,6 +98,10 @@ class MqttService {
 
     try {
       await _client!.connect();
+      // Bağlantı başarılı olduysa connected durumuna geç
+      if (_client!.connectionStatus?.state == MqttConnectionState.connected) {
+        _onConnected();
+      }
       return true;
     } on NoConnectionException catch (e) {
       print('MQTT Bağlantı hatası (NoConnection): $e');
