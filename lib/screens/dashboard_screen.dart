@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/panel_widget_model.dart';
 import '../services/storage_service.dart';
 import '../services/mqtt_service.dart';
-import '../services/theme_service.dart';
+
 import '../widgets/panel_widget_card.dart';
 import 'add_widget_screen.dart';
-import 'package:provider/provider.dart';
+import 'panel_widget_details_screen.dart';
+
 import 'dart:async';
+
+// Renk ve stil sabitleri
+const kPrimaryColor = Color(0xFF2B7CD3);
+const kBackgroundColor = Color(0xFFFAFAFA);
+const kCardBackgroundColor = Color(0xFFF9F9FC);
+const kTextDarkColor = Color(0xFF333333);
+const kTextMediumColor = Color(0xFF666666);
+const kButtonLabelColor = Color(0xFFB0BEC5);
+const kSuccessColor = Color(0xFF43A047);
+const kErrorColor = Color(0xFFE53935);
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -237,8 +249,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _showWidgetDetails(PanelWidgetModel widget) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.title} detayları gösterilecek')),
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            PanelWidgetDetailsScreen(widget: widget),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOutCubic;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
     );
   }
 
@@ -255,62 +283,149 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: _buildAppBar(context),
       body: _buildBody(context),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addNewWidget,
-        child: const Icon(Icons.add),
+      floatingActionButton: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        child: FloatingActionButton(
+          onPressed: _addNewWidget,
+          backgroundColor: const Color(0xFFEEF1FF),
+          foregroundColor: kPrimaryColor,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(Icons.add, size: 32),
+        ),
       ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      title: const Text('Smart Panel'),
+      backgroundColor: kPrimaryColor,
+      elevation: 0,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text(
+        'Smart Panel',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: true,
       actions: [
         _ConnectionStatusIcon(connectionState: _connectionState),
         const SizedBox(width: 8),
-        const _ThemeButton(),
         IconButton(
-          icon: const Icon(Icons.settings),
+          icon: const Icon(Icons.settings, color: Colors.white),
           onPressed: () => Navigator.pushReplacementNamed(context, '/settings'),
+        ),
+        IconButton(
+          icon: const Icon(Icons.build, color: Colors.white),
+          onPressed: () {
+            // Yapılandırma işlemleri
+          },
         ),
         const SizedBox(width: 8),
       ],
+      systemOverlayStyle: SystemUiOverlayStyle.light,
     );
   }
 
   Widget _buildBody(BuildContext context) {
+    if (_items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.dashboard_customize,
+              size: 64,
+              color: kPrimaryColor.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Henüz panel bileşeni eklenmedi',
+              style: TextStyle(
+                fontSize: 16,
+                color: kTextMediumColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _addNewWidget,
+              icon: const Icon(Icons.add),
+              label: const Text('Yeni Bileşen Ekle'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final width = MediaQuery.of(context).size.width;
     final crossAxisCount = width < 600 ? 2 : width < 900 ? 3 : 4;
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+    return Container(
+      color: kBackgroundColor,
+      child: GridView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, kToolbarHeight + 32),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          childAspectRatio: width < 600 ? 0.75 : 0.85,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: _items.length,
+        itemBuilder: (context, index) {
+          final widget = _items[index];
+          return AnimatedOpacity(
+            duration: Duration(milliseconds: 300 + (index * 100)),
+            opacity: 1.0,
+            curve: Curves.easeOut,
+            child: AnimatedContainer(
+              duration: Duration(milliseconds: 300 + (index * 100)),
+              curve: Curves.easeOut,
+              transform: Matrix4.translationValues(
+                0.0,
+                0.0,
+                0.0,
+              )..translate(
+                  0.0,
+                  20.0 * (1.0 - 1.0),
+                  0.0,
+                ),
+              child: PanelWidgetCard(
+                key: ValueKey(widget.id),
+                widget: widget,
+                onTap: () => _showWidgetDetails(widget),
+                onLongPress: () => _showDeleteDialog(context, widget),
+                onToggle: (value) => _toggleWidget(widget, value),
+                onSliderChanged: widget.type == PanelWidgetType.slider
+                    ? (value) {
+                        setState(() {
+                          widget.currentValue = value;
+                        });
+                      }
+                    : null,
+                onSliderChangeEnd: widget.type == PanelWidgetType.slider
+                    ? (value) => _updateSliderValue(widget, value)
+                    : null,
+              ),
+            ),
+          );
+        },
       ),
-      itemCount: _items.length,
-      itemBuilder: (context, index) {
-        final widget = _items[index];
-        return PanelWidgetCard(
-          key: ValueKey(widget.id),
-          widget: widget,
-          onTap: () => _showWidgetDetails(widget),
-          onLongPress: () => _showDeleteDialog(context, widget),
-          onToggle: (value) => _toggleWidget(widget, value),
-          onSliderChanged: widget.type == PanelWidgetType.slider
-              ? (value) {
-                  setState(() {
-                    widget.currentValue = value;
-                  });
-                }
-              : null,
-          onSliderChangeEnd: widget.type == PanelWidgetType.slider
-              ? (value) => _updateSliderValue(widget, value)
-              : null,
-        );
-      },
     );
   }
 
@@ -382,76 +497,7 @@ class _ConnectionStatusIcon extends StatelessWidget {
   }
 }
 
-class _ThemeButton extends StatelessWidget {
-  const _ThemeButton();
 
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.brightness_medium),
-      onPressed: () => _showThemeMenu(context),
-    );
-  }
-
-  void _showThemeMenu(BuildContext context) {
-    final themeService = context.read<ThemeService>();
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _ThemeMenuItem(
-              icon: Icons.brightness_auto,
-              title: 'Sistem',
-              onTap: () {
-                themeService.setThemeMode(ThemeMode.system);
-                Navigator.pop(context);
-              },
-            ),
-            _ThemeMenuItem(
-              icon: Icons.light_mode,
-              title: 'Açık Tema',
-              onTap: () {
-                themeService.setThemeMode(ThemeMode.light);
-                Navigator.pop(context);
-              },
-            ),
-            _ThemeMenuItem(
-              icon: Icons.dark_mode,
-              title: 'Koyu Tema',
-              onTap: () {
-                themeService.setThemeMode(ThemeMode.dark);
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ThemeMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _ThemeMenuItem({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      onTap: onTap,
-    );
-  }
-}
 
 class _ReconnectDialog extends StatelessWidget {
   const _ReconnectDialog();

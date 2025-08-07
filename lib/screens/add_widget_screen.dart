@@ -1,6 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../models/panel_widget_model.dart';
+
+// Renk ve stil sabitleri
+const kPrimaryColor = Color(0xFF2B7CD3);
+const kBackgroundColor = Color(0xFFFAFAFA);
+const kBorderColor = Color(0xFFCCCCCC);
+const kTextDarkColor = Color(0xFF333333);
+const kTextMediumColor = Color(0xFF666666);
+const kTextLightColor = Color(0xFF999999);
+const kErrorColor = Color(0xFFE53935);
+
+// Stil sabitleri
+const kInputDecoration = InputDecoration(
+  filled: true,
+  fillColor: Colors.white,
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderSide: BorderSide(color: kBorderColor),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderSide: BorderSide(color: kBorderColor),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderSide: BorderSide(color: kPrimaryColor, width: 2),
+  ),
+  errorBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderSide: BorderSide(color: kErrorColor),
+  ),
+  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+);
 
 class AddWidgetScreen extends StatefulWidget {
   const AddWidgetScreen({super.key});
@@ -89,8 +122,22 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Yeni Panel Bileşeni'),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Yeni Panel Bileşeni',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: true,
       ),
+      backgroundColor: kBackgroundColor,
       body: Form(
         key: _formKey,
         child: ListView(
@@ -98,10 +145,12 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
           children: [
             DropdownButtonFormField<PanelWidgetType>(
               value: _selectedType,
-              decoration: const InputDecoration(
+              decoration: kInputDecoration.copyWith(
                 labelText: 'Bileşen Türü',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kTextMediumColor),
               ),
+              dropdownColor: Colors.white,
+              style: const TextStyle(color: kTextDarkColor),
               items: const [
                 DropdownMenuItem(
                   value: PanelWidgetType.button,
@@ -125,10 +174,12 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _titleController,
-              decoration: const InputDecoration(
+              decoration: kInputDecoration.copyWith(
                 labelText: 'Başlık',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kTextMediumColor),
+                hintText: 'Bileşen başlığını girin',
               ),
+              style: const TextStyle(color: kTextDarkColor),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Lütfen bir başlık girin';
@@ -139,11 +190,13 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _topicController,
-              decoration: const InputDecoration(
+              decoration: kInputDecoration.copyWith(
                 labelText: 'Yayın Topic\'i (Publish)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kTextMediumColor),
                 hintText: 'örn: home/living_room/light/set',
+                hintStyle: const TextStyle(color: kTextLightColor),
               ),
+              style: const TextStyle(color: kTextDarkColor),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Lütfen bir topic girin';
@@ -154,21 +207,25 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _subscribeTopicController,
-              decoration: const InputDecoration(
+              decoration: kInputDecoration.copyWith(
                 labelText: 'Dinleme Topic\'i (Subscribe)',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: kTextMediumColor),
                 hintText: 'örn: home/living_room/light/state',
+                hintStyle: const TextStyle(color: kTextLightColor),
                 helperText: 'Boş bırakılabilir',
+                helperStyle: const TextStyle(color: kTextLightColor),
               ),
+              style: const TextStyle(color: kTextDarkColor),
             ),
             const SizedBox(height: 16),
             if (_selectedType == PanelWidgetType.button) ...[
               TextFormField(
                 controller: _onMessageController,
-                decoration: const InputDecoration(
+                decoration: kInputDecoration.copyWith(
                   labelText: 'Açık Mesajı',
-                  border: OutlineInputBorder(),
+                  labelStyle: const TextStyle(color: kTextMediumColor),
                 ),
+                style: const TextStyle(color: kTextDarkColor),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen açık mesajını girin';
@@ -179,10 +236,11 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _offMessageController,
-                decoration: const InputDecoration(
+                decoration: kInputDecoration.copyWith(
                   labelText: 'Kapalı Mesajı',
-                  border: OutlineInputBorder(),
+                  labelStyle: const TextStyle(color: kTextMediumColor),
                 ),
+                style: const TextStyle(color: kTextDarkColor),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen kapalı mesajını girin';
@@ -194,10 +252,11 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
             if (_selectedType == PanelWidgetType.slider) ...[
               TextFormField(
                 controller: _minValueController,
-                decoration: const InputDecoration(
+                decoration: kInputDecoration.copyWith(
                   labelText: 'Minimum Değer',
-                  border: OutlineInputBorder(),
+                  labelStyle: const TextStyle(color: kTextMediumColor),
                 ),
+                style: const TextStyle(color: kTextDarkColor),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -212,10 +271,11 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _maxValueController,
-                decoration: const InputDecoration(
+                decoration: kInputDecoration.copyWith(
                   labelText: 'Maximum Değer',
-                  border: OutlineInputBorder(),
+                  labelStyle: const TextStyle(color: kTextMediumColor),
                 ),
+                style: const TextStyle(color: kTextDarkColor),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -234,51 +294,94 @@ class _AddWidgetScreenState extends State<AddWidgetScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            const Text(
-              'İkon Seçin',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: _availableIcons.map((icon) {
-                final isSelected = _selectedIcon == icon;
-                return InkWell(
-                  onTap: () => setState(() => _selectedIcon = icon),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.outline,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Icon(
-                      icon,
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : Theme.of(context).colorScheme.onSurface,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kBorderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'İkon Seçin',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: kTextDarkColor,
                     ),
                   ),
-                );
-              }).toList(),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    children: _availableIcons.map((icon) {
+                      final isSelected = _selectedIcon == icon;
+                      return InkWell(
+                        onTap: () {
+                          setState(() => _selectedIcon = icon);
+                          HapticFeedback.lightImpact();
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? kPrimaryColor : Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? kPrimaryColor : kBorderColor,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: kPrimaryColor.withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Icon(
+                            icon,
+                            color: isSelected ? Colors.white : kTextDarkColor,
+                            size: 28,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _saveWidget,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton(
+                onPressed: _saveWidget,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 2,
+                  shadowColor: kPrimaryColor.withOpacity(0.3),
+                ),
+                child: const Text(
+                  'Kaydet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-              child: const Text('Kaydet'),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

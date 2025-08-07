@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
+
 import '../models/panel_widget_model.dart';
+
+// Renk ve stil sabitleri
+const kPrimaryColor = Color(0xFF2B7CD3);
+const kCardBackgroundColor = Color(0xFFF9F9FC);
+const kTextDarkColor = Color(0xFF333333);
+const kTextMediumColor = Color(0xFF666666);
+const kButtonLabelColor = Color(0xFFB0BEC5);
 
 class PanelWidgetCard extends StatelessWidget {
   final PanelWidgetModel widget;
@@ -26,9 +34,20 @@ class PanelWidgetCard extends StatelessWidget {
       tag: 'panel_widget_${widget.id}',
       child: Card(
         elevation: widget.isActive ? 4 : 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        color: kCardBackgroundColor,
         child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          onLongPress: () {
+            HapticFeedback.mediumImpact();
+            onLongPress();
+          },
+          borderRadius: BorderRadius.circular(12),
           child: _CardContent(
             widget: widget,
             onToggle: onToggle,
@@ -58,18 +77,19 @@ class _CardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         gradient: widget.isActive
             ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                  kPrimaryColor.withOpacity(0.1),
+                  kPrimaryColor.withOpacity(0.05),
                 ],
               )
             : null,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -86,8 +106,16 @@ class _CardContent extends StatelessWidget {
           const SizedBox(height: 16),
           _ControlWidget(
             widget: widget,
-            onToggle: onToggle,
-            onSliderChanged: onSliderChanged,
+            onToggle: (value) {
+              HapticFeedback.selectionClick();
+              onToggle(value);
+            },
+            onSliderChanged: onSliderChanged != null
+                ? (value) {
+                    HapticFeedback.selectionClick();
+                    onSliderChanged!(value);
+                  }
+                : null,
             onSliderChangeEnd: onSliderChangeEnd,
           ),
         ],
@@ -107,22 +135,31 @@ class _IconWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      icon,
-      size: 40,
-      color: isActive
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-    )
-        .animate(
-          onPlay: (controller) => controller.repeat(),
-        )
-        .shimmer(
-          duration: const Duration(seconds: 2),
-          color: isActive
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-              : Colors.transparent,
-        );
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isActive ? kPrimaryColor.withOpacity(0.1) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? kPrimaryColor : kButtonLabelColor.withOpacity(0.3),
+          width: isActive ? 2 : 1,
+        ),
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: kPrimaryColor.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : null,
+      ),
+      child: Icon(
+        icon,
+        size: 32,
+        color: isActive ? kPrimaryColor : kTextMediumColor,
+      ),
+    );
   }
 }
 
@@ -141,8 +178,9 @@ class _TitleWidget extends StatelessWidget {
       title,
       style: TextStyle(
         fontSize: 16,
-        fontWeight: FontWeight.w500,
-        color: isActive ? Theme.of(context).colorScheme.primary : null,
+        fontWeight: FontWeight.w600,
+        color: isActive ? kPrimaryColor : kTextDarkColor,
+        letterSpacing: 0.2,
       ),
       textAlign: TextAlign.center,
       maxLines: 2,
@@ -198,33 +236,58 @@ class _ButtonControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () => onToggle(!widget.isActive),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: widget.isActive
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.surfaceVariant,
-        foregroundColor: widget.isActive
-            ? Theme.of(context).colorScheme.onPrimary
-            : Theme.of(context).colorScheme.onSurfaceVariant,
-        elevation: widget.isActive ? 4 : 0,
-      ).copyWith(
-        elevation: MaterialStateProperty.resolveWith<double>(
-          (Set<MaterialState> states) {
-            if (states.contains(MaterialState.pressed)) {
-              return 8;
-            }
-            return widget.isActive ? 4 : 0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      transform: Matrix4.diagonal3Values(
+        widget.isActive ? 1.0 : 0.95,
+        widget.isActive ? 1.0 : 0.95,
+        1.0,
+      ),
+      child: Container(
+        width: double.infinity,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: widget.isActive
+              ? [
+                  BoxShadow(
+                    color: kPrimaryColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: ElevatedButton(
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            onToggle(!widget.isActive);
           },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.isActive ? kPrimaryColor : Colors.white,
+            foregroundColor: widget.isActive ? Colors.white : kTextMediumColor,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(
+                color: widget.isActive ? kPrimaryColor : kButtonLabelColor,
+                width: widget.isActive ? 2 : 1,
+              ),
+            ),
+          ),
+          child: Text(
+            widget.isActive ? widget.onMessage! : widget.offMessage!,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ),
-      child: Text(widget.isActive ? widget.onMessage! : widget.offMessage!),
-    ).animate(target: widget.isActive ? 1 : 0).scale(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          begin: const Offset(0.95, 0.95),
-          end: const Offset(1, 1),
-        );
+    );
   }
 }
 
@@ -239,13 +302,34 @@ class _SwitchControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Switch(
-      value: isActive,
-      onChanged: onToggle,
-    ).animate(target: isActive ? 1 : 0).scale(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-        );
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      transform: Matrix4.diagonal3Values(
+        isActive ? 1.0 : 0.95,
+        isActive ? 1.0 : 0.95,
+        1.0,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive ? kPrimaryColor : kButtonLabelColor,
+            width: isActive ? 2 : 1,
+          ),
+        ),
+        child: Switch.adaptive(
+          value: isActive,
+          onChanged: (value) {
+            HapticFeedback.mediumImpact();
+            onToggle(value);
+          },
+          activeColor: kPrimaryColor,
+          activeTrackColor: kPrimaryColor.withOpacity(0.2),
+        ),
+      ),
+    );
   }
 }
 
@@ -262,34 +346,64 @@ class _SliderControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SliderTheme(
-          data: SliderThemeData(
-            activeTrackColor: Theme.of(context).colorScheme.primary,
-            inactiveTrackColor:
-                Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            thumbColor: Theme.of(context).colorScheme.primary,
-            overlayColor:
-                Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          ),
-          child: Slider(
-            value: widget.currentValue ?? widget.minValue!,
-            min: widget.minValue!,
-            max: widget.maxValue!,
-            onChanged: onSliderChanged,
-            onChangeEnd: onSliderChangeEnd,
-          ),
-        ),
-        Text(
-          '${widget.currentValue?.toStringAsFixed(1) ?? widget.minValue!.toStringAsFixed(1)}',
-          style: TextStyle(
-            fontSize: 14,
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w500,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      transform: Matrix4.diagonal3Values(
+        widget.isActive ? 1.0 : 0.95,
+        widget.isActive ? 1.0 : 0.95,
+        1.0,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: widget.isActive ? kPrimaryColor : kButtonLabelColor,
+            width: widget.isActive ? 2 : 1,
           ),
         ),
-      ],
+        child: Column(
+          children: [
+            SliderTheme(
+              data: SliderThemeData(
+                activeTrackColor: kPrimaryColor,
+                inactiveTrackColor: kPrimaryColor.withOpacity(0.2),
+                thumbColor: kPrimaryColor,
+                overlayColor: kPrimaryColor.withOpacity(0.1),
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(
+                  enabledThumbRadius: 8,
+                  pressedElevation: 8,
+                ),
+                overlayShape: const RoundSliderOverlayShape(
+                  overlayRadius: 16,
+                ),
+              ),
+              child: Slider(
+                value: widget.currentValue ?? widget.minValue!,
+                min: widget.minValue!,
+                max: widget.maxValue!,
+                onChanged: (value) {
+                  HapticFeedback.selectionClick();
+                  onSliderChanged?.call(value);
+                },
+                onChangeEnd: onSliderChangeEnd,
+              ),
+            ),
+            Text(
+              '${widget.currentValue?.toStringAsFixed(1) ?? widget.minValue!.toStringAsFixed(1)}',
+              style: TextStyle(
+                fontSize: 16,
+                color: kPrimaryColor,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 } 
